@@ -5,10 +5,10 @@ from infrastructure.database.connection import DatabaseConnection
 
 
 class UserRepository(IUserRepository):
-    
+
     def __init__(self, db_connection: DatabaseConnection):
         self.db = db_connection
-    
+
     def create(self, user: User) -> User:
         query = """
         INSERT INTO users (username, email, password_hash, role, first_name, last_name, is_active, created_at)
@@ -21,38 +21,38 @@ class UserRepository(IUserRepository):
         )
         user.id = user_id
         return user
-    
+
     def get_by_id(self, user_id: int) -> User | None:
         query = "SELECT * FROM users WHERE id = ?"
         rows = self.db.execute_query(query, (user_id,))
         if rows:
             return self._row_to_user(rows[0])
         return None
-    
+
     def get_by_username(self, username: str) -> User | None:
         query = "SELECT * FROM users WHERE username = ?"
         rows = self.db.execute_query(query, (username,))
         if rows:
             return self._row_to_user(rows[0])
         return None
-    
+
     def get_by_email(self, email: str) -> User | None:
         query = "SELECT * FROM users WHERE email = ?"
         rows = self.db.execute_query(query, (email,))
         if rows:
             return self._row_to_user(rows[0])
         return None
-    
+
     def get_all(self) -> list[User]:
         query = "SELECT * FROM users ORDER BY created_at DESC"
         rows = self.db.execute_query(query)
         return [self._row_to_user(row) for row in rows]
-    
+
     def get_by_role(self, role: UserRole) -> list[User]:
         query = "SELECT * FROM users WHERE role = ? ORDER BY created_at DESC"
         rows = self.db.execute_query(query, (role.value,))
         return [self._row_to_user(row) for row in rows]
-    
+
     def update(self, user: User) -> User:
         query = """
         UPDATE users 
@@ -66,12 +66,38 @@ class UserRepository(IUserRepository):
              user.first_name, user.last_name, user.is_active, user.id)
         )
         return user
-    
+
     def delete(self, user_id: int) -> bool:
         query = "DELETE FROM users WHERE id = ?"
         self.db.execute_update(query, (user_id,))
         return True
-    
+
+    def get_children_ids(self, parent_id: int) -> list[int]:
+        query = "SELECT child_id FROM parent_child WHERE parent_id = ?"
+        rows = self.db.execute_query(query, (parent_id,))
+        return [row['child_id'] for row in rows]
+
+    def is_parent_of(self, parent_id: int, child_id: int | str) -> bool:
+        query = f"SELECT COUNT(*) as count FROM parent_child WHERE parent_id = {parent_id} AND child_id = {child_id}"
+        rows = self.db.execute_query(query)
+        return rows[0]['count'] > 0 if rows else False
+
+    def create_parent_child_relationship(self, parent_id: int, child_id: int, relationship: str = 'parent') -> bool:
+        try:
+            query = "INSERT INTO parent_child (parent_id, child_id, relationship) VALUES (?, ?, ?)"
+            self.db.execute_update(query, (parent_id, child_id, relationship))
+            return True
+        except:
+            return False
+
+    def remove_parent_child_relationship(self, parent_id: int, child_id: int) -> bool:
+        try:
+            query = "DELETE FROM parent_child WHERE parent_id = ? AND child_id = ?"
+            self.db.execute_update(query, (parent_id, child_id))
+            return True
+        except:
+            return False
+
     def _row_to_user(self, row) -> User:
         return User(
             id=row['id'],

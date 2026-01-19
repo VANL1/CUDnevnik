@@ -27,28 +27,33 @@ class User(UserMixin):
     is_active: bool = True
     created_at: datetime | None = None
     student_profile: Student | None = None
-    
+
     def get_full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
-    
+
+    def get_name_full_with_email(self) -> str:
+        text = self.get_full_name()
+        text += f'({self.email})'
+        return text
+
     def is_student(self) -> bool:
         return self.role == UserRole.STUDENT
-    
+
     def is_parent(self) -> bool:
         return self.role == UserRole.PARENT
-    
+
     def is_teacher(self) -> bool:
         return self.role == UserRole.TEACHER
-    
+
     def is_admin(self) -> bool:
         return self.role == UserRole.ADMIN
-    
+
     def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
-    
+
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
-    
+
     def __repr__(self):
         return f'<User {self.username} ({self.role.value})>'
 
@@ -60,7 +65,7 @@ class ParentChild:
     child_id: int
     relationship: str = 'parent'
     created_at: datetime | None = None
-    
+
     def __repr__(self):
         return f'<ParentChild {self.parent_id} -> {self.child_id}>'
 
@@ -72,7 +77,7 @@ class TeacherSubject:
     subject_id: int
     is_primary: bool = True
     created_at: datetime | None = None
-    
+
     def __repr__(self):
         return f'<TeacherSubject {self.teacher_id} -> {self.subject_id}>'
 
